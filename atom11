@@ -1,0 +1,2368 @@
+
+vers='v11.1'
+
+local computer = require("computer")
+local component = require("component")
+local term = require('term')
+local rs = component.redstone
+local unicode = require('unicode')
+local colors = require("colors")
+local event = require('event')
+local text = require("text")
+local gpu = component.gpu -- получаем прокси видеокарты
+--     Цвета     --
+witecolor = 0xFFFFFF --белый
+magentaColor= 0xFFCC33--фиолетовый
+elowColor= 0x00FFFF--жёлтый
+oranjColor= 	0x0080FF--орнажевый
+fiolColor= 0xFF00FF-- фиолетовый
+temnofiolColor=0x800080 --темнофиолетовый
+P_redColor= 0xFF0000-- красный
+temnoredColor=0x000080 -- темнокрасный
+GolubColor= 0xFFFF00 --голубой
+svetsinColor= 0xFF8000-- светлосиний
+blueColor= 0x0000FF --синий
+svetZel=0x00FF00-- светлозелёный
+graeColor=0x808080 -- серый
+svetloserColor=0xD0D0D0-- светлосерый
+temnozelColor=0x008000-- тёмнозелёный
+biruzColor=0x808000-- бирюзовый
+korich=0x004080-- коричневый
+
+
+forecolor = 0xFFFFFF
+infocolor = 0x0066FF
+errorcolor = 0xFF0000
+helpcolor = 0x006600
+graycolor = 0x818181
+goldcolor = 0xFFDF00
+backcolor = 0x000000 -- чёрный
+palette = {0xFFFFFF, 0xFFCC33, 0xCC66CC, 0x6699FF,
+0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
+0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
+0x663300, 0x336600, 0xFF3333, 0x000000}
+--      ***      --
+redKabColorMas={[1]='white', [2]='orange', [3]='magenta', [4]='blue',
+                [5]='yellow', [6]='linme', [7]='pink', [8]='grey',
+                [9]='lightgrey', [10]='cyan', [11]='purple', [12]='blue',
+                [13]='brown', [14]='green', [15]='red', [16]='black'}--кажется нет смысла в этой таблице
+
+--константы
+
+-- переменные
+local maxW,maxH=0,0
+
+-- переменные конфиг Main
+local monNamb=1-- переменная монитора. надо будет наверное заменить на адрес
+local fullscreen=false-- режим адаптивного разрешения
+local otstupProgres= 5-- 
+local deltaMetod = 1-- по умолчанию будет 1й метод
+
+local side_red = 1 -- сторона ред блока
+
+--Button_Mass={} -- массив кнопок
+ButtonM = {}
+Button_Mass = {}
+Button_Mass.__index = Button_Mass
+local kolSisButton=3
+local otstL=-18
+local otstR=3
+
+Label_Mass={} -- массив лейблов
+TextB_Mass={} -- массив Текст Боксов
+
+-- файл
+local Filesystem = require('filesystem')
+KFile= '/home/konfig.txt'-- адрес конфиг файла
+local GifMas ={'-', string.char(92) ,"|","/"}--
+local Gind=0
+
+--======================================умное объявление компонентов==================================================
+function trytofind(name)
+  if component.isAvailable(name) then
+    return component.getPrimary(name)
+  else
+    return nil
+  end
+end
+ 
+--local h = trytofind('hologram')
+
+--=======================================умное объявление компонентов всё============================================
+function version(f)-- отрисовка версии
+  x=maxW-12
+  y=maxH
+  if f ==1 then
+    gpu.fill(x, y, 7, 1, " ")
+    gpu.set(x,y,vers)
+   else
+    gpu.fill(x, y, 7, 1, " ")
+  end--f ==1 
+end--version
+--===========================================Кнопки==============================
+-- ============================================== B U T T O N S ============================================== --
+
+Button = {}
+Button.__index = Button
+
+--################
+
+function Button.new(func, x, y, text, color, width)
+  local Last_backcolor= gpu.getForeground(backcolor)
+if text=='OFF' then gpu.setForeground(errorcolor) end
+  self = setmetatable({}, Button)
+   self.form = ''
+  if width == nil then width = 0
+  else width=math.max(width,unicode.len(text)) end  
+ -- for i=1, math.floor(width/2) do
+--    self.form = self.form.. ' '
+--  end
+  self.form = self.form..text
+ -- for i=1, math.ceil(width/2) do
+ --   self.form = self.form.. ' '
+--  end
+    self.lines = {};
+  table.insert(self.lines,self.form)
+  self.func = func
+  self.x = x; self.y = y
+  self.color = color
+  self.visible = true
+  self.width=width
+  gpu.setForeground(Last_backcolor)
+  return self
+end
+
+
+function Button:addtext(index,text)
+    --local Last_backcolor= gpu.getForeground(backcolor)
+    --  if text=='OFF' then gpu.setForeground(errorcolor) end
+   --   if text=='ON ' then gpu.setForeground(0x7CFC00) end 
+      
+    
+    self.lines[1]=text
+     
+  --gpu.set(30,9,'ggtt'..text)
+
+ --gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+ -- gpu.setForeground(Last_backcolor)
+  
+end
+
+--###########
+
+
+function Button:draw(color)--,Foregr_color )
+--local Last_backcolor= gpu.getForeground(backcolor)--1-- хз, помогает ли это...
+
+local Last_backcolor= gpu.getForeground(backcolor)-- считываем цвет текущего шрифта
+     
+
+  if self.visible then -- если кнопка видима
+   local color = color or self.color
+      gpu.setBackground(color)
+     -- if Foregr_color ~= nil then gpu.setForeground(Foregr_color) end
+     if color > 0x888888 then gpu.setForeground(backcolor) end
+    -- начало рисовки
+     local pline = "-";
+    for i=1, unicode.len(self.form)-2 do
+    pline = pline.. '-'
+   end
+    pline = pline.. '¬'
+
+      if self.lines[1]=='OFF' then gpu.setForeground(errorcolor) end--1
+      if self.lines[1]=='ON ' then gpu.setForeground(0x7CFC00) end --1
+
+   --   gpu.set(self.x, self.y, pline)
+   for i,j in pairs(self.lines) do
+       gpu.set(self.x, self.y+i, j)
+    end;
+   local pline = "L";
+     for i=1, unicode.len(self.form)-2 do
+        pline = pline.. '-'
+     end
+   pline = pline.. '-'
+
+    -- конец рисовки    попробую отключить
+    --gpu.set(self.x, self.y+1+#self.lines, pline)
+    gpu.setBackground(backcolor)
+
+    if color > 0x888888 then gpu.setForeground(forecolor) end
+
+   else
+    gpu.setBackground(backcolor)
+    gpu.set(self.x, self.y+1,'   ')
+  end
+ gpu.setForeground(Last_backcolor)--1 восстанавливаем цвет шрифта
+ end
+
+function Button:click(x, y,index)
+  --return false--переместил сюда
+  if self.visible then
+    if y >= self.y+1 and y <= self.y+1+#self.lines-1 then --срезал верх и низ
+      if x >= self.x and x < self.x+unicode.len(self.form) then
+       --
+        --if tostring(self.func) == rconN then 
+        if tostring(self.form)=='OFF' or tostring(self.form)=='ON ' then
+          if index ~= nil then self.func(index) end
+        else 
+        self.func() 
+        end
+        
+       
+        self:draw(self.color/2)
+        os.sleep(0.1)
+        self:draw()
+             --gpu.setForeground(0xFFFFFF)--выправить цвет обратно после изменения цвета текста кнопки. иначе всё красится тем же цветом
+        return true
+      end
+    end
+  end
+ -- return false
+end
+ buttons = {}
+
+ --function buttonsNew
+function buttonsNew(func, x, y, text, color, width)
+  butt = Button.new(func, x, y, text, color, width)
+  table.insert(buttons, butt)
+   return butt
+end 
+
+
+function buttonsDraw()
+ 
+  for i=1, #buttons do
+  --  if buttons[i].form=='OFF' then gpu.setForeground(errorcolor) end-- задолбало искать где меняется цвет каждой кнопки. потом надо будет переделать. создать 2 массива, массив ОН, массив ОФФ
+  --if buttons[i].form=='ON ' then gpu.setForeground(0x7CFC00) end 
+      buttons[i]:draw()
+      --gpu.set(30,i+10,'but'..i..' Foregro '.. gpu.getForeground'') --tostring( buttons[i].form))
+     -- gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    --gpu.set(30,i+10,'but'..i..' .form '.. tostring( buttons[i].form))
+ --
+  end
+end
+function buttonsClick(x, y)
+  for i=1, #buttons do
+   -- if 
+   buttons[i]:click(x, y,i)--==true then rconN(i) end-- получаем индекс кнопки
+    
+    
+  end
+end
+--==================================дополнительное===============================
+function Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown, indButton, LogButton)
+    buttMus = setmetatable({}, Button_Mass)
+      buttMus.name=  name-- название
+      buttMus.Xo=  Xo-- отступ Х
+      buttMus.Yo=  Yo-- отступ У
+      buttMus.redColor=  redColor-- цвет кабеля
+      buttMus.pUp=  pUp-- %вкл
+      buttMus.pDown=  pDown -- %выкл
+      buttMus.indButton=  indButton -- индекс сответствующей кнопки
+      buttMus.LogButton= LogButton -- логика включения кнопки
+    table.insert(Button_Mass, buttMus)
+   --return buttMus--попробовать убрать. не думаю что влияет
+end
+
+
+function AddButton ()-- добавить кнопку -- для генераторов. право верх
+  --tipe=metod--'G'
+ -- if tipe == 'G'  then-- для генераторов. право верх
+    Drawing= false
+    local bacCol=gpu.getBackground()
+    local ForeCol=gpu.getForeground()
+    --gpu.setBackground(colPr)
+    gpu.setBackground(0xCCCCCC)
+    gpu.setForeground(infocolor)--выправить цвет обратно
+    local Xk0,Yk0=10,5-- координаты окошка. Резерв
+    local Xk,Yk=Xk0,Yk0-- координаты рабочие
+       gpu.fill(Xk, Yk, 38, 10, " ") -- очищаем экран 
+         gpu.set(Xk,Yk,'введите данные для кнопки')
+            
+      Yk=Yk+1
+        gpu.set(Xk,Yk,'Название кнопки')--16
+          term.setCursor(Xk+16,Yk)--терминал перемещает курсор
+          local nameAdd=''
+          while unicode.len(nameAdd)<1 do
+            nameAdd=io.read()--file:write('Name= ','Gen1','\n')
+            if unicode.len(nameAdd)>10 then 
+              nameAdd=string.sub(nameAdd,1,11) --обрезать до 10 символов
+              gpu.fill(Xk+26, Yk, 12, 1, " ")
+             end
+             term.setCursor(Xk+16,Yk)--терминал перемещает курсор
+          end
+         
+     
+      
+      local OtsXAdd= 3--OtsX= остаётся по умолчанию 3
+      local OtsYAdd=1--OtsY= определяется исходя из количества кнопок
+      for i =1,#Button_Mass do
+       if Button_Mass[i].Xo == OtsXAdd then OtsYAdd=OtsYAdd+2 end      
+      end
+
+      OtsYAdd=maxH-5-OtsYAdd-- надо 5 вынести в константу
+      --gpu.set(30,3,OtsYAdd..' OtsYAdd '..maxH..' maxH'..maxW..' maxW')
+      --gpu.set(Xk,Yk,'% выключения')
+
+      Yk=Yk+1
+      --было бы неплохо сделать вариативный ввод, на продвинутой видеокарте и обычной
+        gpu.set(Xk,Yk,'Номер редстоун провода')--23
+        i=0
+          Yk=Yk+1
+         --вывод массива названий цветов и индексов
+        --colors[]
+          tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+            gpu.set(Xk,Yk,tempTEXT)
+            i=i+4
+            Yk=Yk+1
+          tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+            gpu.set(Xk,Yk,tempTEXT)
+            i=i+4
+            Yk=Yk+1
+          tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+            gpu.set(Xk,Yk,tempTEXT)
+            i=i+4
+            Yk=Yk+1
+          tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+           gpu.set(Xk,Yk,tempTEXT)
+       
+           -- term.setCursor(Xk+23,Yk-4)--терминал перемещает курсор
+            local ColorKabAdd=0
+          while tonumber(ColorKabAdd)<1 do
+            term.setCursor(Xk+23,Yk-4)--терминал перемещает курсор
+            ColorKabAdd = io.read() --file:write('ColorKab= ','0x080808','\n')--цвет заменить
+            if tonumber(ColorKabAdd)>16 then
+              ColorKabAdd =0
+              gpu.fill(Xk+23, Yk-4, 15, 1, " ")
+            end
+            --...redKabColorMas
+          end
+          ColorKabAdd = colors[tonumber(ColorKabAdd)]-- убрать лишний массив цветов !!!!!!!!!!!!!!!!!!
+          gpu.set(Xk+23,Yk-4,ColorKabAdd )
+             
+        Yk=Yk+1
+        gpu.setForeground(svetZel)
+        local pUpAdd=-1
+           gpu.set(Xk,Yk,'% включения')
+           while pUpAdd<0 do
+            term.setCursor(Xk+12,Yk)--терминал перемещает курсор
+            pUpAdd = tonumber(io.read())--  file:write('%on= ','40','\n')
+              if pUpAdd<0 or pUpAdd>100  then
+               pUpAdd=-1
+               gpu.fill(Xk+12,Yk, 26, 1, " ")
+               end
+           end
+            
+          Yk=Yk+1
+          gpu.setForeground(P_redColor)
+          local pDownAdd=-1
+            gpu.set(Xk,Yk,'% выключения')
+            while pDownAdd<0 do
+              term.setCursor(Xk+13,Yk)
+              pDownAdd = tonumber(io.read())-- file:write('%off= ','80','\n')
+              if pDownAdd<0 or pDownAdd>100 or pDownAdd == pUpAdd then
+                  pDownAdd=-1
+                  gpu.fill(Xk+13,Yk, 25, 1, " ")
+                end--if
+            end--while
+             local LogButton=false--логика включения кнопки
+             --0= индекс. мб конечно и не нужен...надо подумать
+             Button_Mass.new (nameAdd, OtsXAdd, OtsYAdd, colors[ColorKabAdd], pUpAdd, pDownAdd,0,LogButton)-- записать в массив
+             --gpu.set(30,3,'if '..unicode.len(redColorAdd)..'-'..redColorAdd)
+               if unicode.len(nameAdd)>0 and 
+               unicode.len(OtsXAdd)>0 and 
+               unicode.len(OtsYAdd)>0 and 
+               unicode.len(ColorKabAdd)>0 and
+               unicode.len(pUpAdd)>0 and 
+               unicode.len(pDownAdd)>0 then konfigWrite () end--записать в файл
+               
+    --выправить цвет обратно после изменения цвета текста кнопки. иначе всё красится тем же цветом
+    gpu.setBackground(bacCol)
+    gpu.setForeground(ForeCol)
+
+    --AddButton1= buttonsNew(AddButton, w-10, 6+butGkol*2 , 'add',goldcolor, BUTTONW)
+    --AddButton1
+         --self.y=self.y+2
+       
+         
+       -- for i = 1, #buttons do
+         -- gpu.set(30,4,'Buttons'..i..' '..tostring(Buttons[i].func))
+      --    io.read()
+       --  if Buttons[indAdd].func==AddButton then Buttons[i].visible = false end
+      --  end
+
+      -- стирание кнопки....работает правильно?
+      --buttons[indAdd].visible = false
+        ----AddButton1=nil
+       -- gpu.set(30,3,OtsYAdd..' OtsYAdd '..maxH..' maxH')
+       -- gpu.set(maxW-10,maxH -OtsYAdd,' ')
+        --io.write('AddButton1.Y '..AddButton1.y)
+        AddButton1.visible=false
+        AddButton1:draw()
+        AddButton1.y= AddButton1.y+2--= buttonsNew(AddButton, maxW-10, maxH -OtsYAdd+2, 'add',goldcolor, BUTTONW)
+        AddButton1.visible=true
+        AddButton1:draw()
+
+
+        --инициализация новой кнопки
+        --io.write('Button_Mass[#Button_Mass] .Xo '..Button_Mass[#Button_Mass].Xo)
+       
+         local Xk= maxW-Button_Mass[#Button_Mass].Xo
+         local Yk= maxH-Button_Mass[#Button_Mass].Yo
+        --Button_Mass.new (nameAdd, OtsXAdd, OtsYAdd, colors[ColorKabAdd], pUpAdd, pDownAdd,0,LogButton)
+        butt = Button.new(rconN, Xk, Yk, 'OFF',infocolor, BUTTONW)
+           --table.insert(buttons, butt)
+           table.insert(buttons,(#buttons-kolSisButton+1), butt)
+          --io.read()   
+           --Button_Mass[i].indButton =#buttons-- индекс кнопки
+         Label_Mass[#Button_Mass] = textboxesNew(Xk-7, Yk+1, 'OFF', 1)         
+         TextB_Mass[#Button_Mass] = textboxesNew(Xk-16, Yk+1, Button_Mass[#Button_Mass].name, otstupProgres+1)
+    
+      -- Label_Mass[#buttons]:draw ()
+      --TextB_Mass[#Button_Mass]:draw ()
+      --buttons[#buttons]:draw ()
+
+    gpu.fill(Xk0, Yk0, 38, 10, " ")--зачистить после себя поле
+    Drawing= true
+    textboxesDraw()
+    buttonsDraw()
+   --elseif tipe=='P' then-- для потребителей. лево, низ
+      
+      
+
+      --=========goto========
+        -- logRepit= true
+        -- running =false
+      --======goto всё=======
+ -- end
+ 
+end--function AddButton (metod)
+
+
+function sdvigButton()--сдвинуть системные кнопки в конец массива
+  --for i= 1,#buttons do
+  --print(i..' '..tostring( buttons[i].func)..' x '..buttons[i].x..' y '..buttons[i].y)
+  --end
+-- а может просто сделать 2 массива? пользовательские и системные...
+-- количество системных не изменяется так часто как пользовательских
+  local kolStart=#buttons-kolSisButton
+  for i= 1,kolSisButton do
+  local butTemp=buttons[kolStart]
+  table.insert(buttons, butTemp)
+  table.remove(buttons,kolStart)
+  --buttons[kolStart]=nil
+end
+
+--print('-------------------')
+ -- for i= 1,#buttons do
+ -- print(i..' '..tostring( buttons[i].func)..' x '..buttons[i].x..' y '..buttons[i].y)
+  --end
+ -- io.read()
+
+end--function sdvigButton()
+
+function AddButton2 ()-- для потребителей. лево, низ
+
+  Drawing= false
+  local bacCol=gpu.getBackground()
+  local ForeCol=gpu.getForeground()
+  --gpu.setBackground(colPr)
+  gpu.setBackground(0xCCCCCC)
+  gpu.setForeground(infocolor)--выправить цвет обратно
+  local Xk0,Yk0=10,5-- координаты окошка. Резерв
+  local Xk,Yk=Xk0,Yk0-- координаты рабочие
+     gpu.fill(Xk, Yk, 38, 10, " ") -- очищаем экран 
+       gpu.set(Xk,Yk,'введите данные для кнопки')
+          
+    Yk=Yk+1
+      gpu.set(Xk,Yk,'Название кнопки')--16
+        term.setCursor(Xk+16,Yk)--терминал перемещает курсор
+        local nameAdd=''
+        while unicode.len(nameAdd)<1 do
+          nameAdd=io.read()--file:write('Name= ','Gen1','\n')
+          if unicode.len(nameAdd)>10 then 
+            nameAdd=string.sub(nameAdd,1,11) --обрезать до 10 символов
+            gpu.fill(Xk+26, Yk, 12, 1, " ")
+           end
+           term.setCursor(Xk+16,Yk)--терминал перемещает курсор
+        end
+       
+   
+    
+    local OtsXAdd= -18--OtsX= остаётся по умолчанию 3
+    local OtsYAdd= 3--OtsY= определяется исходя из количества кнопок
+   --1 for i =1,#Button_Mass do
+   --1  if Button_Mass[i].Xo == OtsXAdd then OtsYAdd=OtsYAdd+2 end      
+   --1 end
+
+   -- OtsYAdd=maxH-5-OtsYAdd-- надо 5 вынести в константу
+    --gpu.set(30,3,OtsYAdd..' OtsYAdd '..maxH..' maxH'..maxW..' maxW')
+    --gpu.set(Xk,Yk,'% выключения')
+
+    Yk=Yk+1
+    --было бы неплохо сделать вариативный ввод, на продвинутой видеокарте и обычной
+      gpu.set(Xk,Yk,'Номер редстоун провода')--23
+      i=0
+        Yk=Yk+1
+        --вывод массива названий цветов и индексов
+        --colors[]
+       tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+       gpu.set(Xk,Yk,tempTEXT)
+       i=i+4
+       Yk=Yk+1
+       tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+       gpu.set(Xk,Yk,tempTEXT)
+       i=i+4
+       Yk=Yk+1
+       tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+       gpu.set(Xk,Yk,tempTEXT)
+       i=i+4
+       Yk=Yk+1
+       tempTEXT= colors[i]..' '..i..' '..colors[i+1]..' '..(i+1)..' '..colors[i+2]..' '..(i+2)..' '..colors[i+3]..' '..(i+3)
+       gpu.set(Xk,Yk,tempTEXT)
+     
+         -- term.setCursor(Xk+23,Yk-4)--терминал перемещает курсор
+          local ColorKabAdd=0
+        while tonumber(ColorKabAdd)<1 do
+          term.setCursor(Xk+23,Yk-4)--терминал перемещает курсор
+          ColorKabAdd = io.read() --file:write('ColorKab= ','0x080808','\n')--цвет заменить
+          if tonumber(ColorKabAdd)>15 then
+            ColorKabAdd =0
+            gpu.fill(Xk+23, Yk-4, 15, 1, " ")
+          end
+          --...
+        end
+       -- io.write ('ColorKabAdd '..ColorKabAdd..'\n')    
+        ColorKabAdd = colors[tonumber(ColorKabAdd)]-- преобразования из цифры в текст --убрать лишний массив цветов !!!!!!!!!!!!!!!!!!
+       -- io.write ('ColorKabAdd '..ColorKabAdd..'\n')    
+        gpu.set(Xk+23,Yk-4,ColorKabAdd )
+           
+      Yk=Yk+1
+      gpu.setForeground(svetZel)
+      local pUpAdd=-1
+         gpu.set(Xk,Yk,'% включения')
+         while pUpAdd<0 do
+          term.setCursor(Xk+13,Yk)--терминал перемещает курсор
+          pUpAdd = tonumber(io.read())--  file:write('%on= ','40','\n')
+            if pUpAdd<0 or pUpAdd>100  then
+             pUpAdd=-1
+             gpu.fill(Xk+13,Yk, 26, 1, " ")
+             end
+         end
+          
+        Yk=Yk+1
+        gpu.setForeground(P_redColor)--)--)
+        local pDownAdd=-1
+          gpu.set(Xk,Yk,'% выключения')
+          while pDownAdd<0 do
+            term.setCursor(Xk+13,Yk)
+            pDownAdd = tonumber(io.read())-- file:write('%off= ','80','\n')
+            if pDownAdd<0 or pDownAdd>100 or pDownAdd == pUpAdd then
+                pDownAdd=-1
+                gpu.fill(Xk+13,Yk, 25, 1, " ")
+              end--if
+          end--while
+           local LogButton=false--логика включения кнопки
+          
+           --gpu.set(30,3,'if '..unicode.len(redColorAdd)..'-'..redColorAdd)
+     
+            -- io.write ('colors[ColorKabAdd]'..colors[ColorKabAdd])     
+  --выправить цвет обратно после изменения цвета текста кнопки. иначе всё красится тем же цветом
+
+  --AddButton1= buttonsNew(AddButton, w-10, 6+butGkol*2 , 'add',goldcolor, BUTTONW)
+  --AddButton1
+       --self.y=self.y+2
+     
+       
+     -- for i = 1, #buttons do
+       -- gpu.set(30,4,'Buttons'..i..' '..tostring(Buttons[i].func))
+    --    io.read()
+     --  if Buttons[indAdd].func==AddButton then Buttons[i].visible = false end
+    --  end
+
+    -- стирание кнопки....работает правильно?
+    --buttons[indAdd].visible = false
+      ----AddButton1=nil
+     -- gpu.set(30,3,OtsYAdd..' OtsYAdd '..maxH..' maxH')
+     -- gpu.set(maxW-10,maxH -OtsYAdd,' ')
+      --io.write('AddButton1.Y '..AddButton1.y)
+--перерисовка лейбла- Потребители
+     
+
+      -- перерисовывать  все кнопки и верхушку
+         -- Label2.y= Label2.y+2
+           Label2.visible=false
+           Label2:draw()
+           Label2.y=Label2.y-2
+           Label2.visible=true
+          -- Label2:draw()
+          for i = 1, #buttons do
+            if buttons[i].x== -OtsXAdd then 
+              --button
+              buttons[i].visible=false
+              buttons[i]:draw()
+              
+              buttons[i].y= buttons[i].y-2
+              buttons[i].visible=true
+           end
+          end
+          for i = 1, #Button_Mass do
+           -- надо сделать нормальную систему координат
+         
+              --TextB
+              if Button_Mass[i].Xo== OtsXAdd then 
+                Button_Mass[i].Yo=Button_Mass[i].Yo+2
+             -- io.write('TextB_Mass[i] '..i..' # '..#TextB_Mass)
+              TextB_Mass[i].visible=false
+              TextB_Mass[i]:draw()
+              TextB_Mass[i].y= TextB_Mass[i].y-2
+              TextB_Mass[i].visible=true
+              --Label
+              Label_Mass[i].visible=false
+              Label_Mass[i]:draw()
+              Label_Mass[i].y= Label_Mass[i].y-2--надо бы сократить 3 операции до 1й
+              Label_Mass[i].visible=true
+            end--if
+          end
+
+            --0= индекс. мб конечно и не нужен...надо подумать
+            Button_Mass.new (nameAdd, OtsXAdd, OtsYAdd, colors[ColorKabAdd], pUpAdd, pDownAdd, (#buttons+1),LogButton)-- записать в массив
+
+          if unicode.len(nameAdd)>0 and 
+          unicode.len(OtsXAdd)>0 and 
+          unicode.len(OtsYAdd)>0 and 
+          unicode.len(ColorKabAdd)>0 and
+          unicode.len(pUpAdd)>0 and 
+          unicode.len(pDownAdd)>0 then konfigWrite () end--записать в файл
+
+
+          gpu.setBackground(bacCol)
+          gpu.setForeground(ForeCol)
+        
+
+      --AddButton2.visible=false
+      --AddButton2:draw()
+      --AddButton2.y= AddButton1.y+2--= buttonsNew(AddButton, maxW-10, maxH -OtsYAdd+2, 'add',goldcolor, BUTTONW)
+      --AddButton1.visible=true
+      --AddButton1:draw()
+
+
+      --инициализация новой кнопки
+      --io.write('Button_Mass[#Button_Mass] .Xo '..Button_Mass[#Button_Mass].Xo)
+     
+       local Xk= -Button_Mass[#Button_Mass].Xo
+       local Yk= maxH-Button_Mass[#Button_Mass].Yo
+      --Button_Mass.new (nameAdd, OtsXAdd, OtsYAdd, colors[ColorKabAdd], pUpAdd, pDownAdd,0,LogButton)
+      butt = Button.new(rconN, Xk, Yk, 'OFF',infocolor, BUTTONW)
+         table.insert(buttons,(#buttons-kolSisButton), butt)
+        --io.read()   
+         --Button_Mass[i].indButton =#buttons-- индекс кнопки
+       Label_Mass[#Button_Mass] = textboxesNew(Xk-7, Yk+1, 'OFF', 1)         
+       TextB_Mass[#Button_Mass] = textboxesNew(Xk-16, Yk+1, Button_Mass[#Button_Mass].name, otstupProgres+1)
+ 
+     --Label_Mass[#buttons]:draw ()
+    --TextB_Mass[#Button_Mass]:draw ()
+    --buttons[#buttons]:draw ()
+
+  gpu.fill(Xk0, Yk0, 38, 10, " ")--зачистить после себя поле
+  Drawing= true
+
+    --sdvigButton()
+
+   textboxesDraw()
+   buttonsDraw()
+
+end--function AddButton2
+
+
+
+  function ProsMetod ()--изменение режима отображения
+    deltaMetod=deltaMetod+1
+     if deltaMetod>3 then deltaMetod=1 end-- отключу альтернативные. не рабочие методы(5--->2)
+      ProsButton:addtext(1,'m'..deltaMetod)
+      konfigWrite()
+  end--function ProsMetod 
+ --::skok_repit::
+
+
+ function redSideSet()
+  term.clear()
+  local sides = require("sides")
+  print('----------Сканирование Редстоун Проводов----------')
+  --side_red=-1
+  print('подайте редстоун сигнал на выбранную сторону')
+  side_red=-1
+  local RedSig= 0
+  while side_red<0 do
+   
+    for i = 0,5 do
+      RedSig=rs.getInput(i)
+       if RedSig>0 then
+       side_red=i
+       break
+     end--if
+    end--for
+    if side_red<0 then
+      print('редстоун сигнал не обнаружен. нажмите ВВОД')
+      io.read()
+      else
+        print('редстоун сигнал обнаружен')
+        io.write('сторона '.. tostring( sides[side_red])..'  '..' сила сигнала '..RedSig..'\n')
+        print('нажмите ВВОД')
+       io.read()
+    end
+
+
+  end
+  
+end
+
+
+
+
+
+ 
+ function ColorToInd(color_value)--преобразовать название цвета в индекс. кажется уже не нужна
+  local value= tostring( color_value)
+    for i=0,#colors do
+     if colors[i]==value then
+      value=i
+      i=#colors
+     end
+    end
+    return value
+ end
+ --===========================================Кнопки всё==========================
+-- ============================================ T E X T B O X E S ============================================ --
+Textbox = {}
+Textbox.__index = Textbox
+function Textbox.new(x, y, value, width)
+
+  self = setmetatable({}, Textbox)
+
+self.form = ''-- символ перед полем
+ if width == nil then width = 10 end-- можно отключить по величине
+   for i=1, width-1 do
+    self.form = self.form..' '
+   end
+ 
+  self.value = tostring(value)
+ 
+  self.x = x; self.y = y
+  self.visible = true
+ 
+  return self
+end
+
+function Textbox:draw(content)
+  if self.visible then
+    if content then gpu.setBackground(backcolor)end--graycolor) end -- задний фон за Лейблом
+    gpu.set(self.x, self.y, self.form)
+    if content then gpu.set(self.x, self.y, self.value) end--x+2, self.y, self.value) end--+2 мещение из-за добавляемого символа спереди
+    gpu.setBackground(backcolor)
+    else
+      gpu.setForeground(backcolor)--555555
+      gpu.setBackground(backcolor)
+      gpu.fill(self.x, self.y,unicode.len(self.value), self.y,' ')
+  end
+end
+
+function Textbox:click(x, y)
+  if self.visible then
+    if y == self.y then
+      if x >= self.x and x < self.x+unicode.len(self.form) then
+        self:draw(false)
+        local tmpV = self.value
+        term.setCursor(self.x, self.y)--x+2, self.y)--+2 из-за доп символа
+        value = string.sub(term.read({self.value}), 1, -2)--почему-то отваливается если использовать Бекспейс
+        --if self.func(value) then-- функции НЕТ, отключу
+         self.value = value
+         -- теперь надо записать в файл изменения
+         for i=1,#Button_Mass do-- ищем нужную кнопку
+            if Button_Mass[i].name== tmpV then
+              Button_Mass[i].name=value
+              i=#Button_Mass
+            end
+         end
+         konfigWrite()
+        --end
+        self:draw(true)
+        return true
+      end
+    end
+  end
+  return false
+end
+
+
+
+function Textbox:setValue(value)
+  self.value = tostring(value)
+end
+function Textbox:getValue()
+  return self.value
+end
+textboxes = {}
+function textboxesNew(x, y, value, width)
+  textbox = Textbox.new(x, y, value, width)
+  table.insert(textboxes, textbox)
+  return textbox
+end 
+function textboxesDraw()
+  for i=1, #textboxes do
+  if textboxes[i].value=='OFF' then gpu.setForeground(errorcolor) end
+  if textboxes[i].value=='ON ' then gpu.setForeground(0x7CFC00) end 
+     textboxes[i]:draw(true)-- отрисовывать или нет
+gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+  end
+end
+function textboxesClick(x, y)
+  for i=1, #textboxes do
+    textboxes[i]:click(x, y)
+  end
+end
+
+--текстовые поля всё@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+--==============================функции==========================================
+--RFunk = {}
+--function RFunk(redColor, pUp, pDown)
+ -- if pros>=pUp then end
+
+
+--end
+
+--RFunk.__index = RFunk 
+--function RFunk.new(redColor, pUp, pDown)
+
+  --self = setmetatable({}, RFunk)
+ -- self.Color=redColor
+  --self.pUp=pUp
+ -- self.pDow=pDow
+--end
+
+--RFunkxes = {}
+----Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown,indButton)
+--function RFunkNew()--redColor, pUp, pDown)
+
+ -- RFunkx = RFunk.new(redColor, pUp, pDown)
+--  table.insert(RFunkxes , RFunkx )
+  ----return textbox
+--end 
+--==============================функции всё======================================
+
+
+--========================описание хранилищ======================================
+kolSL =16-- макс количество слотов
+local bat_mas={}-- собираем массив хранилищ
+local addressBat=''--адрес хранилища энергии
+local type_Batt=''-- тип хранилища. надо бы сделать функцию пере определения.
+--local h = trytofind('hologram')
+
+
+
+function but_buf_skan ()
+  local gt = {}
+
+  term.clear()
+
+  local otstup = 0
+
+  for address, name in component.list("gt_") do
+    if name:len() > otstup then
+      otstup = name:len()
+   end
+   --k= адрес, v= название: "gt_batterybuffer"
+   local gt_komp=component.proxy( address )
+   table.insert(gt, gt_komp) 
+   --io.write(#bat_mas..' '..name..' '..gt_komp.getOutputVoltage''..'\n')
+  
+  end
+  otstup=otstup+2
+
+  print(' -------- Найденные компоненты --------')
+  print('№  Название           EU     A      Адрес')
+  for index, bat_com in pairs(gt) do
+    io.write(index..' ' ..text.padRight(bat_com.type, otstup) ..''..text.padRight(tostring( bat_com.getOutputVoltage''), 8)..''..text.padRight( tostring(bat_com.getOutputAmperage'' ), 3)..''..bat_com.address..'\n')
+  end--
+  print('укажите индекс требуемого компонента')
+  --bat_mas=gt[ io.read()]
+  local gtInd=tonumber(io.read())
+
+  table.insert(bat_mas,component.proxy(tostring(gt[gtInd].address)) )
+  addressBat=tostring(gt[gtInd].address)
+  type_Batt=gt[gtInd].type
+end
+
+--but_buf_skan ()--временно-------------------------------------------------------------------------------------------------------
+
+--for k,v in component.list("gt_batterybuffer") do table.insert(bat_mas,component.proxy( k ) ) end
+capa=0
+
+mas_t={}--массив для увеличения точности
+mastk=1--чётчик для массива
+kb=0-- количество батареек в батБоксе
+  --for jk=1,10 do--пересчитываем дельту по истории
+  --   mas_t[jk]=0
+ --  end
+ 
+function rabSbuferom ()---раббуф
+  
+  if  type_Batt =="gt_batterybuffer" then
+  --сценарий для стандартного буфера
+      kb=bat_mas[1].getOutputAmperage()-- колличество батареек
+      for i=1,#bat_mas do --определяем размер массива хранилищ. не верно- это для нескольких батбуферов
+        capa=capa+bat_mas[i].getEUMaxStored()--отталкиваемся от макс капы бокса
+        for j=1,kolSL do--kolSL  do--bat_mas[i].getSensorInformation()[1]:sub(15,16) do
+          if (type(bat_mas[i].getBatteryCharge( j )))== "number" then--проверка типов данных
+            capa=capa+bat_mas[i].getMaxBatteryCharge( j )
+           end
+        end
+      end
+
+
+  end
+
+  if type_Batt =="gt_machine" then
+
+    local ttgg = component.proxy("gt_batterybuffer")
+
+    local gt_komp=component.proxy("gt_batterybuffer")
+    local ggt=bat_mas[1].getSensorInformation()-- пока что не знаю как с этим правильно работать
+    --local sensInform= tostring(ttgg[1].getSensorInformation())--bat_mas[1].getSensorInformation()
+    --bat_mas[i].getSensorInformation()[1]:sub(15,16) do
+   -- table.insert(ggt,component.proxy("gt_batterybuffer"))
+   --io.write(#ggt)
+
+   --for k,v in pairs(ggt) do
+  --  io.write('>> '..k..'\nДокументация: '..tostring(v)..'\n')
+   --end
+   --io.write(tostring(gt_komp:sub(15,16)))--ttgg.getSensorInformation[1])
+
+
+   local gt = {}
+ 
+  for address, name in component.list("gt_batterybuffer") do
+       gt_komp=component.proxy( address )
+   table.insert(gt, gt_komp) 
+   --io.write(#bat_mas..' '..name..' '..gt_komp.getOutputVoltage''..'\n')
+  
+  end
+  sensInf={}
+ table.insert(sensInf, bat_mas[1].getSensorInformation) 
+
+ -- for k,v in pairs(bat_mas[1]) do
+   -- tpp= v()
+   --io.write(type(false))
+   -- if type(tpp)== 'boolean' then tpp= tostring(tpp) end
+   -- if tpp== nil then tpp='nil'end
+
+   --io.write(k..' = '.. tpp)--..'\n')
+   --io.read()
+   -- end
+   ---==========================================================
+   --table.insert(gt, bat_mas[1].getCoordinates) --таблица
+   --for v,k in pairs(gt) do
+    --io.write(v..' '.. tostring( k)..'\n')
+   --end
+    --io.write('getCoordinates '..  #gt..'\n')
+     -- io.read()
+      io.write('getStoredEU '..bat_mas[1].getStoredEU()..'\n')
+      io.read()
+  -- 
+
+ 
+   --temp = string.sub(sensInform[1],4,#sensInform[1]-3)
+    --io.write( sensInf[1])
+     -- io.write(tostring( temp))
+    for i= 1, 16 do--sub(1,16) вычленяет из строки с 1 по 16й символ
+      --io.write(bat_mas[1].getSensorInformation:)
+       --io.write(i..' '..gt[1].getSensorInformation()[i]..'\n' )
+      -- io.write(bat_mas[1].type..'\n')
+        io.write(i..' '..bat_mas[1].getSensorInformation()[i]..'\n' )
+       
+
+      -- io.write(ggt[i]:sub(1))--[1]:sub(1)) --tostring( ggt[i])..' '..'\n')
+    end--bat_mas[i].getSensorInformation()[1]:sub(15,16)
+ 
+    io.read()
+   end
+end
+
+--описание хранилищ всё============================================================
+
+--конфигурационный файл============================================================
+konf_list={}
+function konfigRead ()-- Чтение конфига ИЗ файла
+  if  Filesystem.exists(KFile) then
+    -- загразука ИЗ файла
+    file = io.open(KFile, 'r')
+    local bat_not_avalibal= false
+   
+    local running=true
+     while running do
+        
+      tmp = file:read("*l")
+        if tmp==nil then running= false
+         else
+          if tmp=='[Main]' then--чтение основных настроек
+           tmp2 = text.tokenize(file:read("*l"))-- монитор
+            monNamb=tonumber(tmp2[2])
+
+           tmp2 = text.tokenize(file:read("*l"))-- режим монитора
+            fullscreen=tostring(tmp2[2]) 
+   
+           tmp2 = text.tokenize(file:read("*l"))-- сторона Реда
+            side_red =tonumber(tmp2[2])
+        
+            tmp2 = text.tokenize(file:read("*l"))--отступ после прогресс бара
+            otstupProgres=tonumber(tmp2[2])
+
+            tmp2 = text.tokenize(file:read("*l"))--абрес батарейного буфера
+            addressBat=tostring(tmp2[2])
+
+            if component.proxy(tostring(addressBat))~= nil then--если компонент по адресу не найден --component.isAvailable(addressBat) then
+            table.insert(bat_mas,component.proxy(tostring(addressBat)))
+            else
+              bat_not_avalibal=true
+              print('----компонент не найден!!!-----')
+              print('нажмите ВВОД')
+              io.read()
+              but_buf_skan()
+            end
+
+            type_Batt=bat_mas[1].type
+            
+            tmp2 = text.tokenize(file:read("*l"))--выбранный метод рассчёта дельты
+            deltaMetod=tonumber(tmp2[2])
+            
+          end--if tmp=='[Main]'
+          if tmp=='[Button]' then--чтение кнопок
+           while running do
+        
+             tmp = file:read("*l")
+            
+               if tmp==nil then running= false
+                else
+                 
+                  -- цикл чтения кнопок
+                   tmp2 = text.tokenize(tmp)
+                    local name=tostring(tmp2[2])-- название
+                   tmp2 = text.tokenize(file:read("*l"))
+                    local Xo=tonumber(tmp2[2])-- отступ Х
+                   tmp2 = text.tokenize(file:read("*l"))
+                    local Yo=tonumber(tmp2[2])-- отступ У
+                   tmp2 = text.tokenize(file:read("*l"))
+                    local redColor=colors[tostring(tmp2[2])]--ColorToInd(tostring(tmp2[2]))-- index цвета кабеля
+                   tmp2 = text.tokenize(file:read("*l"))
+                    local pUp=tonumber(tmp2[2])-- %вкл
+                   tmp2 = text.tokenize(file:read("*l"))
+                    local pDown=tonumber(tmp2[2])-- %выкл
+                    local LogButton= false--tostring( false)
+                  --Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown)
+                  --0= индекс. мб конечно и не нужен...надо подумать
+                 Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown, 0,LogButton)
+              end--if
+              
+           end--while  
+                  
+                    
+                  
+          end--if tmp=='[ButtonGen]'
+        end--if
+
+     end--while
+
+  
+
+
+    file:close()
+
+    if bat_not_avalibal then-- если компонент был потерян
+      bat_not_avalibal=false
+      konfigWrite()-- перезаписать с новым компонентом конфиг
+    end
+ else
+    --файл не найден, создать с прараметрами по умолчанию
+    file = io.open(KFile, 'w') --открываем файл для записи
+    file:write('[Main]\n')
+    file:write('monitor= ',1,'\n')
+    file:write('fullscreen= ','false','\n') --режим монитора
+     redSideSet()-- ищем сторону редстоун блока
+    file:write('redSide= ',side_red,'\n')--сторона редстоун блока
+    file:write('otstupProgres= ',otstupProgres,'\n')--отступ после прогресс бара
+    but_buf_skan ()--ищем адрес батарейного буфера
+    file:write('addressBat= ',addressBat,'\n')--адрес адаптера батарейного буфера
+    file:write('deltaMetod= ',deltaMetod,'\n')   --метода подсчёта дельты
+
+    file:write('[Button]\n')
+    file:write('Name= ','Gen1','\n')
+    file:write('OtsX= ','3','\n')
+    file:write('OtsY= ','19','\n')
+    file:write('ColorKab= ',colors[0],'\n')--цвет заменить
+    file:write('%on= ','40','\n')
+    file:write('%off= ','80','\n')
+
+    file:close()
+ end
+end--konfigRead ()
+function konfigWrite ()
+    file = io.open(KFile, 'w') --открываем файл для записи
+    file:write('[Main]\n')
+    file:write('monitor= ',monNamb,'\n')
+    file:write('fullscreen= ', tostring(fullscreen),'\n') --режим монитора
+    -- redSideSet()-- ищем сторону редстоун блока
+    file:write('redSide= ',side_red,'\n')--сторона редстоун блока
+    file:write('otstupProgres= ',otstupProgres,'\n')--отступ после прогресс бара
+   -- but_buf_skan ()--ищем адрес батарейного буфера
+    file:write('addressBat= ',addressBat,'\n')--адрес адаптера батарейного буфера
+    file:write('deltaMetod= ',deltaMetod,'\n')   --метода подсчёта дельты
+
+
+    file:write('[Button]\n')
+    --цикл для кнопок
+    for i =1,#Button_Mass do
+      --Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown)
+     file:write('Name= ',Button_Mass[i].name,'\n')
+     file:write('OtsX= ',Button_Mass[i].Xo,'\n')
+     file:write('OtsY= ',Button_Mass[i].Yo,'\n')
+    -- io.write('colors[Button_Mass[i].redColor '..colors[Button_Mass[i].redColor])
+     --io.read()
+     file:write('ColorKab= ',colors[Button_Mass[i].redColor],'\n')
+     file:write('%on= ',Button_Mass[i].pUp,'\n')
+     file:write('%off= ',Button_Mass[i].pDown,'\n')
+    end
+    
+    file:close()
+end--konfigWrite ()
+function konfigDell()
+  gpu.setBackground(0xCCCCCC)
+  gpu.setForeground(infocolor)--выправить цвет обратно
+  local Xk0,Yk0=10,5-- координаты окошка. Резерв
+  local Xk,Yk=Xk0,Yk0-- координаты рабочие
+     gpu.fill(Xk, Yk, 38, 10, " ") -- очищаем экран 
+       gpu.set(Xk,Yk,'вы собираетесь удалить конфиг')
+        Yk=Yk+1
+       gpu.set(Xk,Yk,'для подтверждения введите dell')--16
+        Yk=Yk+1
+       term.setCursor(Xk+16,Yk)--терминал перемещает курсор
+        local comand=''
+        --while unicode.len(comand)<1 do
+          --comand=--file:write('Name= ','Gen1','\n')
+          if io.read()=="dell" then
+            Filesystem.remove(KFile)
+           -- file:remove()
+           -- file:close()
+            Yk=Yk+1
+            gpu.set(Xk,Yk,'конфиг успешно удалён')
+            Yk=Yk+1
+            gpu.set(Xk,Yk,'перезапустите программу')
+            os.sleep(5)
+            --break
+            running =false
+          end-- command=='dell' 
+
+end--konfigDell()
+
+konfigRead()-- Чтение конфига ИЗ файла
+
+function konfig()-- применение конфига
+  --1) установить настройки монитора
+  --2) установить настройки Редстоуна
+  --3) установить кнопки и текстбоксы
+  
+        local butGkol = 0 --кол-во кнопок генарторов
+        local butPkol = 0 --кол-во кнопок потребителей
+    -- пользовательские
+        for i = 1, #Button_Mass do
+          --io.write('Button_Mass[i].Xo '..Button_Mass[i].Xo)
+          local Xk=0
+         if Button_Mass[i].Xo<0 then 
+          --io.write(' <0')
+            Xk= 0-Button_Mass[i].Xo
+          else
+            Xk= maxW-Button_Mass[i].Xo
+           end
+         local Yk= maxH-Button_Mass[i].Yo
+         --io.write('\n Xk '..Xk)
+         butt = Button.new(rconN, Xk, Yk, 'OFF',infocolor, BUTTONW)
+           table.insert(buttons, butt)  
+           Button_Mass[i].indButton =#buttons-- индекс кнопки
+         Label_Mass[i] = textboxesNew(Xk-7, Yk+1, 'OFF', 1)         
+         TextB_Mass[i] = textboxesNew(Xk-16, Yk+1, Button_Mass[i].name, otstupProgres+1)--6 врем
+
+          if Button_Mass[i].Xo ==(3) then butGkol = butGkol +1 end--подсчёт кнопок генераторов
+          if Button_Mass[i].Xo ==(-18) then butPkol = butPkol +1 end--подсчёт кнопок потребителей
+        end--for
+  -- системные
+    Label1= textboxesNew(maxW-16, 5, 'Генераторы', 2)
+    Label2= textboxesNew(3, maxH-butPkol*2-2, 'Потребители', 2)
+--'G'
+    AddButton1= buttonsNew(AddButton , maxW-10, 6+butGkol*2 , 'add',goldcolor, BUTTONW)
+    indAdd= #buttons
+    AddButton2= buttonsNew(AddButton2, 6, maxH- 1, 'add',goldcolor, BUTTONW)
+    ProsButton= buttonsNew(ProsMetod, maxW-14, 2, 'm'..deltaMetod,infocolor, BUTTONW)
+        --butt2=buttonsNew(rcon, 77, 4, 'OFF',infocolor, BUTTONW) -- кнопка лавы
+  
+  
+end
+indAdd=0
+rabSbuferom ()--временно сюда воткну
+--описание ГПУ ==================================================================
+
+
+GPU_T={}--объявили ГПУ
+for k,v in component.list("gpu") do table.insert(GPU_T,component.proxy( k ) ) end
+
+Sa_T={}-- объявили адреса моников
+for k,v in component.list("screen") do table.insert(Sa_T, k  ) end
+
+function zapMon ()
+  --описываем выбор моника
+  print("выберите монитор")--выберите монитор
+   for ia=1,#Sa_T do
+    print(ia .. ")",Sa_T[ia])
+   end
+  monNamb=tonumber(io.read())
+ end
+--zapMon ()
+
+if #GPU_T >1 then
+   if GPU_T[1] == gpu then --связывание выбранного моника с видеокартой отличной от текущей
+       gpu = GPU_T[2] 
+    else
+      gpu = GPU_T[1] 
+    end
+end
+
+--SaT=Sa_T[mn]
+gpu.bind(Sa_T[monNamb])
+  -- Получаем масштаб в качестве первого аргумента скрипта и корректируем его значение
+  local scale = tonumber(select(1, ...) or 1)
+ function ProporsEkran (w,h)
+  --local component = require("component")
+
+   if not scale or scale > 1 then
+     scale = 1
+   elseif scale < 0.1 then
+     scale = 0.1
+   end
+  
+  --local gpu = component.gpu
+  local blockCountByWidth, blockCountByHeight = component.proxy(gpu.getScreen()).getAspectRatio()
+  local maxWidth, maxHeight = gpu.maxResolution()
+  local proportion = (blockCountByWidth * 2 - 0.5) / (blockCountByHeight - 0.25)
+   
+  local height = scale * math.min(
+    maxWidth / proportion,
+    maxWidth,
+    math.sqrt(maxWidth * maxHeight / proportion)
+  )
+  
+  -- Выставляем полученное разрешение
+  gpu.setResolution(math.floor(height * proportion), math.floor(height))
+  maxW= math.floor(height * proportion)
+  maxH= math.floor(height)
+
+ end
+-- изменение режима пропорции монитора
+FullSkrinMon = false
+ if FullSkrinMon then -- выбор режиме монитора
+  maxW, maxH = gpu.maxResolution() 
+  ProporsEkran (maxW,maxH)-- фул скрин
+  -- почему-то падает программа
+ else
+  maxW, maxH = gpu.maxResolution()-- стандартный режим
+ end
+
+-- тут определяется разрешение экрана
+-- временно уберу
+
+gpu.fill(1, 1, maxW, maxH, " ") -- очищаем экран
+--gpu.set(10,10,tostring(ttr)) --вывод на второй моник
+--ГПУ всё=======================================
+
+konfig()-- применение конфига 
+
+function timeDraw()
+
+end--timeDraw()
+--прогрес бар=====================================================
+function progres(pros,delta)
+  x=maxW--положение по Х
+  y=1-- положение по У
+
+  -- для оптимизации лучше убрать отдельные цвета
+  --цвета
+  colBas = 0xDBDBDB--светлосерый
+  colRed = 0xFF0000--красный   0x8B0000--тёмнокрасный
+  colOra = 0xFFA500-- оранжевый
+  colGol = 0xFFD700-- золотистый -- мб заменю вместо жёлтого
+  colYel = 0xFFFF00--жёлтый
+  colLgr = 0x7CFC00--светлозелёный
+  colGre = 0x228B22--зелёный
+  local color = color --or self.color -- похоже это для кнопок, временно отключу!!!!
+
+
+ ------- отрисовка прогресс бара
+  gpu.setBackground(colBas)--color)
+  gpu.fill(x-10, y, 10, 1, " ")--отрисовываем поле
+  --процентное заполнение
+  colPr =colBas
+
+  if pros <10 then -- цвета прогресс бара
+    colPr =colRed
+   else
+    if pros <20 then
+      colPr =colOra
+     else
+      if pros <40 then
+         colPr =colYel
+       else
+         if pros <60 then
+              colPr =colLgr
+          else
+              colPr =colGre
+         end--60
+      end--40
+    end--20
+  end--10
+
+
+  masLine = {}
+
+       for i=1, unicode.len(pros) do
+          masLine[i]=string.sub(pros, i, i)
+       end
+masLine[((#masLine)+1)]='%'
+d=5 -math.floor((unicode.len(pros))/2)
+
+--отрисовка процентовки
+ --   for i=1, #masLine do
+--gpu.set(x-d+i, y+3,tostring(masLine[i]))
+--       end
+
+   for i=1, 10 do
+
+      if i > (9 - math.floor((pros/10))) then
+        gpu.setBackground(colPr)
+      else
+        gpu.setBackground(colBas)
+      end-- i > (9 - math.floor((pros/10)))
+
+     if i >d and i<(d+ #masLine+1) then
+       
+       gpu.set(x-11+i, y,tostring(masLine[i-d]))
+            else
+       
+       gpu.set(x-11+i, y,tostring(' '))
+
+     end--i >d and i<(d+ #masLine+1)
+   end
+----- отрисовка прогресс бара всё
+-- отрисовка дельты прогресс бара
+gpu.setBackground(0x000000)
+
+gpu.fill(x-9, y+1, 10, 1, " ")--зачищаем поле
+
+if (type(delta))== "number" then-- тут надо будет выводить дельту. с + или -...и цветом!
+     if delta> 0 then 
+       gpu.setForeground(0x7CFC00)
+       gpu.set(x-9, y+1,tostring('+')) 
+       gpu.set(x-8, y+1,tostring(delta))
+       gpu.setForeground(0xFFFFFF)
+     else
+       gpu.setForeground(errorcolor)
+       gpu.set(x-9, y+1,tostring(delta))
+       gpu.setForeground(0xFFFFFF)
+     end
+end
+-- отрисовка дельты всё
+
+
+--gpu.set(x-1, y+1,tostring('0'))
+--gpu.set(x-2, y+1,tostring('9'))
+--gpu.set(x-3, y+1,tostring('8'))
+--gpu.set(x-4, y+1,tostring('7'))
+--gpu.set(x-5, y+1,tostring('6'))
+--gpu.set(x-6, y+1,tostring('5'))
+--gpu.set(x-7, y+1,tostring('4'))
+--gpu.set(x-8, y+1,tostring('3'))
+--gpu.set(x-9, y+1,tostring('2'))
+--gpu.set(x-10, y+1,tostring('1'))
+
+
+
+end
+--прогрес бар всё=====================================
+
+ function gif()--анимация в правом нижнем углу экрана
+    Gind=Gind+1
+    if Gind>4 then Gind=1 end
+    gpu.setForeground(0xFF8000)
+    --gpu.set(30,10,'maxH-1_'..(maxH-1)..'maxW-1_'..(maxW-1))
+    gpu.set(maxW-1,maxH-1,tostring(GifMas[Gind]))
+    gpu.setForeground(0xFFFFFF) 
+  end-- gif
+
+  function DrawTimeBat()-- отрисовка времени заряда\разряда батареи
+    if pros <100 then --лучше сделать функцию
+      -- gpu.fill(x-10, y+2, 10, 1, "0")--отрисовываем поле
+          if dn>0 then
+            gpu.fill(x-8, y+2, 7, 1, " ") -- очищаем экран
+            gpu.set(x-6, y+2,  "d")--дни
+            gpu.set(x-8,y+2,tostring(dn))--выводим время заполнения дни
+            gpu.set(x-2, y+2, "h")--часы
+            -- gpu.fill(x-4, y+2, 2, 1, " ") -- очищаем экран
+             gpu.set(x-4,y+2,tostring(h))--выводим время заполнения часы
+          else
+  
+              if h>0 then
+                gpu.fill(x-8, y+2, 7, 1, " ") -- очищаем экран
+                gpu.set(x-6, y+2, "h")--часы
+                --gpu.fill(x-8, y+2, 2, 1, " ") -- очищаем экран
+                gpu.set(x-8,y+2,tostring(h))--выводим время заполнения часы
+  
+                gpu.set(x-2, y+2, "m")--минуты
+                --gpu.fill(x-4, y+2, 2, 1, " ") -- очищаем экран
+                gpu.set(x-4,y+2,tostring(mi))--выводим время заполнения минуты
+  
+             else
+                  if mi>0 then
+                   gpu.fill(x-8, y+2, 7, 1, " ") -- очищаем экран
+                   gpu.set(x-6, y+2,  "m")--минуты
+                   --gpu.fill(x-8, y+2, 2, 1, " ") -- очищаем экран
+                   gpu.set(x-8,y+2,tostring(mi))--выводим время заполнения минуты
+  
+                  gpu.set(x-2, y+2,  "s")--секунды
+                  --gpu.fill(x-4, y+2, 2, 1, " ") -- очищаем экран
+                  gpu.set(x-4,y+2,tostring(s))--выводим время заполнения секунды
+  
+          else
+                    gpu.fill(x-8, y+2, 7, 1, " ") -- очищаем экран
+                    gpu.set(x-6, y+2, "s")--секунды
+                    gpu.set(x-8,y+2,tostring(s))--выводим время заполнения секунды
+          end
+            end
+  
+          end
+  
+             if delta==0 then
+               gpu.fill(x-10, y+2, 10, 1, " ")--отрисовываем поле
+             end
+    else
+       gpu.fill(x-10, y+2, 10, 1, " ")--отрисовываем поле
+     end
+  
+  
+  
+  end--DrawTimeBat()
+
+
+
+  function dopTimInd()-- дополнительная отрисовка времени, по центру
+    if pros <100 then
+        --  gpu.fill(10, 11, 5, 1, " ") -- очищаем экран
+      if s>0 then
+          gpu.fill(10, 11, 3, 1, " ") -- очищаем экран
+          gpu.set(10,11,tostring(s))--выводим время заполнения секунды
+          gpu.set(12,11,tostring("s"))--выводим время заполнения
+       else
+          gpu.fill(10, 11, 3, 1, " ") -- очищаем экран
+      end--s>0
+      if mi>0 then
+        gpu.fill(13, 11, 3, 1, " ") -- очищаем экран
+        gpu.set(13,11,tostring(mi))--выводим время заполнения минуты
+        gpu.set(15,11,tostring("m"))--выводим время заполнения
+       else
+        gpu.fill(13, 11, 3, 1, " ") -- очищаем экран
+      end--mi>0
+      if h>0 then
+        gpu.fill(16, 11, 3, 1, " ") -- очищаем экран
+        gpu.set(16,11,tostring(h))--выводим время заполнения часы
+        gpu.set(18,11,tostring("h"))--выводим время заполнения
+       else
+        gpu.fill(16, 11, 3, 1, " ") -- очищаем экран
+      end--h>0
+      if d>0 then
+          gpu.fill(19, 11, 3, 1, " ") -- очищаем экран
+          gpu.set(19,11,tostring(d))--выводим время заполнения дни
+          gpu.set(21,11,tostring("d"))--выводим время заполнения
+       else
+          gpu.fill(19, 11, 3, 1, " ") -- очищаем экран
+      end--d>0
+  
+    end--pros <100
+  end--dopTimInd()
+
+-- кнопки$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+-----тут были кнопки
+
+
+-- ================================ B U T T O N S   F U N C T I O N A L I T Y ================================ --
+-- константы
+--1
+--2=Север
+--3=Юг
+--4=Запад
+--5=Восток
+
+-- на сервере
+--2=Юг
+--3=север
+--4=восток
+--5=запад
+local timUpButBuf=10
+function pereopred_butt_in_buf ()
+  
+  --переопределение количества батареек
+--if bat_mas[1].getOutputAmperage() ~=kb then-- не правильно! количество батареек может не измениться, но замена проихойдёт
+  
+  
+    bat_mas={}--возможно nil будет лушче
+    table.insert(bat_mas,component.proxy(tostring(addressBat)))
+
+    capa=0
+     for i=1,#bat_mas do --определяем размер массива хранилищ
+           capa=capa+bat_mas[i].getEUMaxStored()--отталкиваемся от макс капы бокса
+        for j=1,kolSL  do--kb- колличество батареек. определено по амперам--bat_mas[i].getSensorInformation()[1]:sub(15,16) do
+           if (type(bat_mas[i].getBatteryCharge( j )))== "number" then--проверка типов данных
+             capa=capa+bat_mas[i].getMaxBatteryCharge( j )
+           end--if
+        end--for j
+     end--for i
+    
+  
+  
+     --for k,v in component.list("gt_batterybuffer") do table.insert(bat_mas,component.proxy( k ) ) end
+     
+     --kb=bat_mas[1].getOutputAmperage()-- смысла мало как оказалось
+
+     
+ --end--if bat_mas[1].getOutputAmperage() ~=kb
+  end-- function pereopred_butt_in_buf
+
+  function sumKalk ()
+    sum=0
+ 
+    for i=1,#bat_mas do--определяем объём
+          sum=sum+bat_mas[i].getStoredEU()--объём в блоке
+      for j=1,kolSL  do
+        if (type(bat_mas[i].getBatteryCharge( j )))== "number" then--проверка типов данных
+           sum=sum+bat_mas[i].getBatteryCharge( j )
+        end
+      end--for j
+    end-- for i
+ 
+    pros=math.floor((sum/capa)*10000)/100-- высчитываем проценты заполнения
+    -- процент придётся рассчитывать всё равно, для всех методов!!!!!!!!!!!
+
+  end-- function sumKalk 
+
+  function dopTimIndik()
+    gpu.set(20,3,'                     ')
+    gpu.set(20,3,' sum '..tostring(sum)..' - sumH'..tostring(sumH))
+    gpu.set(20,4,'         ')
+    gpu.set(20,4,tostring(delta))
+  end--dopTimIndik
+  function deltKlMetod3 ()--metod3
+
+    -- удалить
+    --if Drawing then gpu.fill(20, 11, 3, 1, "0") end-- очищаем экран--- перенести!!
+    -- надо привязаться к координатам!!!!!!!!!!!!!
+
+
+    --  gpu.set(20,11,tostring(capa))--выводим капу ------------------%%%%%%%%%%%%%%%%%%%%%%
+    -- а выводится ли капа??___выводится...думаю лучше сделать опционально
+ 
+    sumKalk()--считаем сумму и процент
+    
+    --print(pros)
+ 
+    --вычисляем дельту с Sh интервалом секунд
+    Sh=Sh-1 -- хз, надо, не надо....
+   -- if Sh<1 then
+     -- Sh =2
+        --hh=hh+1
+        --delta=math.floor(((sum-sumH)/20)*10/Sh/2*9/10)/10--хз почему, но надо половинить *9/10- пришлось снять 1\10 иначе не точно выходило
+        --попробую заново сделать дельту
+        --Ndelta=math.floor((sum-sumH)/115*10)/10
+
+
+        --delta=math.floor((sum-sumH)/115*10)/10-- почему 115????!!!!
+       --delta=math.floor((sum-sumH)/71*10)/10--(sum-sumH)/20-- новый рассчёт
+       delta=math.floor((sum-sumH)*10)/315-- правильная формула (sum-sumH)/20 но из-за лагов, не понятно время опроса. приходится подгонять.
+
+       --==========можно отключить================================================
+      -- dopTimIndik()
+       --================можно отключить всё================================
+       ---------повышаем точность измерений
+      mas_t[mastk]=delta
+      mastk=mastk+1
+       if mastk == 11 then mastk=1 end
+        delta =0
+     for jk=1,#mas_t do--пересчитываем дельту по истории
+      delta = delta+mas_t[jk]
+     end--for
+      delta =math.floor( (delta/#mas_t )*100)/100
+      --------всё повышения
+ 
+      -- if (type(delta))~= "number" then--проверка типов данных
+         -- delta=0
+      --  end
+      sumH=sum-- суммаХистори. предыдущее значение
+    --end
+
+
+  end--deltKlMetod3 
+
+  function deltKlMetod1 ()--metod1
+    local sensInp= bat_mas[1].getEUInputAverage()
+    local sensOut= bat_mas[1].getEUOutputAverage()
+     sumKalk()
+     delta = sensInp-sensOut
+
+
+  end--deltKlMetod1
+  function deltKlMetod2 ()--metod2
+    local sensInp= bat_mas[1].getEUInputAverage()
+    local sensOut= bat_mas[1].getEUOutputAverage()
+     sumKalk()
+     delta = sensInp-sensOut
+
+       ---------повышаем точность измерений
+       mas_t[mastk]=delta
+       mastk=mastk+1
+        if mastk == 11 then mastk=1 end
+         delta =0
+      for jk=1,#mas_t do--пересчитываем дельту по истории
+       delta = delta+mas_t[jk]
+      end--for
+       delta =math.floor( (delta/#mas_t )*100)/100
+       --------всё повышения
+  
+       -- if (type(delta))~= "number" then--проверка типов данных
+          -- delta=0
+       --  end
+       sumH=sum-- суммаХистори. предыдущее значение
+
+  end--deltKlMetod2
+
+function deltaKalkul(metod)
+
+      if timUpButBuf <1 then --переопределение количества батареек
+       pereopred_butt_in_buf()
+       timUpButBuf=10
+      else
+       timUpButBuf=timUpButBuf-1
+      end--if --переопределение количества батареек всё
+
+  if metod ==1 then  -- метод первый. ручная калькуляция
+    deltKlMetod1()
+    
+  end-- if ==1
+--как подсчитывать время?
+  if metod ==2 then--getEUInputAverage - getEUOutputAverage 
+  
+    deltKlMetod2()
+   
+
+  end--if ==2
+
+  if metod ==3 then--getEUInputAverage\getEUOutputAverage 
+    local sensInp= bat_mas[1].getEUInputAverage()
+    local sensOut= bat_mas[1].getEUOutputAverage()
+    --gpu.set(20,3,' sensInp '..tostring(sensInp)..' - sensOut'..tostring(sensOut))
+    sumKalk()
+    delta = sensInp-sensOut
+  end--if ==3
+
+  if metod ==4 then--AverageElectricInput с массивом для увеличения точности
+    local sensInp= bat_mas[1].getEUInputAverage()
+    local sensOut= bat_mas[1].getEUOutputAverage()
+
+  end--if ==4     getEUInputAverage
+ return delta-- возвращаем полученное значение
+end
+
+function timeKalkul(delta)--высчитываем время заряда\разряда
+ -- if deltaMetod ==1 then
+  -- вычисляем время заряда\разряда
+  time =0
+ 
+  if (type(delta))== "number" then
+      if delta< 0 then
+        deltaL= delta*(-1)-- убрать лишние операции в формулу
+          if deltaL >100 then
+            deltaL= math.floor(deltaL)
+          end--deltaL >100 
+        time = math.floor((sum/deltaL)/20) --получили количество секунд разряда 
+      else--delta< 0 
+         pys =capa-sum --сколько пусто. это имеет смысл только когда дельта >0
+        deltaL = delta--delata Last
+        time = math.floor((pys/deltaL)/20) --получили количество секунд заряда 
+      end--delta< 0
+  
+  end--(type(delta))== "number" 
+    --придётся поставить ограничение, на вскидку сделал 3 года
+  if time <1 then
+    time=1
+  end--time <1
+  if time >93312000 then
+    time =93312000
+  end--time >93312000
+  --вычисление точного времени
+ m=0--месяц
+ dn=0--день
+ h=0--час
+ mi=0--минута
+ s=0--секунда
+
+  if time>2591999 then --месяцы
+   m =math.floor(time/2592000)
+   time =time -2592000*m
+  end--time>2591999
+  if time>86399 then -- дни
+    -- gpu.set(30,30,tostring(time))--выводим время изменения
+    dn =math.floor(time/86400)
+    time =time -86400*dn
+      -- gpu.set(30,31,tostring(time))--выводим время изменения
+      -- gpu.set(30,32,tostring(dn))--выводим время изменения
+  end--time>86399
+  if time>3599 then -- часы
+    h =math.floor(time/3600)
+    time =time -3600*h
+  end--time>3599
+  if time>59 then -- минуты
+    mi =math.floor(time/60)
+    time =time -60*mi
+  end--time>59
+  s=time-- секунды
+  -- вычисляем время заряда\разряда всё
+
+
+  --end--if deltaMetod ==1 then
+
+end--timeKalkul
+
+
+
+
+function exit() running = false end
+
+function rcon() -- функция контроля включения лава бойлера
+  
+  --=========старый функционал=========================
+   --if butt2L==true then --3  
+   --    logika_LV1('OFF')    
+   --    butt2:addtext(1,'OFF')--,errorcolor)
+   --    butt2L=false
+   --   else
+   --     butt2:addtext(1,'ON ')--,0x7CFC00)
+   --     butt2L=true
+   --  end
+  --=========старый функционал всё=======================
+end--rcon() 
+function rconN(indButton) -- функция нажатия на кнопку управления
+  local indB = tostring(indButton)
+ -- local indB_M=0
+  
+   if not(indB == nil) then  --(type(indButton))== "number" then
+     --for i=1,#Button_Masss do--=========================================666666666666666 возможно отключу!!!!!
+    --  if indB== Button_Mass[i].indButton then indB_M=i end
+    -- end
+    indB=tonumber(indB)
+        if  Button_Mass[indB].LogButton ==true then --3  
+       --logika_LV1('OFF')   
+       LogikaRedSig(tonumber(indB),'OFF')
+       --self:addtext(1,'OFF')--form='OFF'--butt2:addtext(1,'OFF')--,errorcolor)
+       buttons[indB]:addtext(1,'OFF')
+       Button_Mass[indB].LogButton=false
+      else
+       --self:addtext(1,tostring('ON '))--.form='ON '--butt2:addtext(1,'ON ')--,0x7CFC00)
+       buttons[indB]:addtext(1,'ON ')
+       Button_Mass[indB].LogButton=true
+     end
+   end
+end--rconN(indButton) 
+
+function LogikaRedSig (indButton,sostLogik)-- функция управления Редстоун Сигналом
+  --Button_Mass.new (name, Xo, Yo, redColor, pUp, pDown, indButton, LogButton)
+  local indB= tonumber(indButton)
+  local status= tostring(sostLogik)
+  local RedKab_color=Button_Mass[indB].redColor --colors.orange
+ -- gpu.set(30, 10,'RedKab_color '..RedKab_color)
+  -- io.write('RedKab_color '..RedKab_color)
+  -- io.read()
+  if status =='ON ' then 
+     --gpu.set(30, 11,'RedKab_color '..RedKab_color)
+    rs.setBundledOutput(side_red, RedKab_color,255) -- оранжевый цвет!! надо сделать нормальную настройку на каждую кнопку
+     gpu.setForeground(0x7CFC00)-- зелёный цвет
+       Label_Mass[indB]:setValue('ON ')
+       Label_Mass[indB]:draw(true)
+     gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+   else
+    rs.setBundledOutput(side_red, RedKab_color,0)
+     gpu.setForeground(errorcolor)   -- красный цвет         
+      Label_Mass[indB]:setValue('OFF')
+      Label_Mass[indB] :draw(true)
+      gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+  end
+
+  --logika_LV1
+end
+
+
+
+function logik_control(pros)-- логика управления про проценту заряда
+ local pros= tonumber(pros)
+  for i=1,#Button_Mass do
+
+    if Button_Mass[i].Xo==otstR then
+      if (pros> Button_Mass[i].pDown ) or Button_Mass[i].LogButton== false then --выключить если процент выше указанной планки, или если свойство кнопки- фолс
+        LogikaRedSig (i,'OFF')
+      end
+
+      if pros< Button_Mass[i].pUp then-- если процент ниже указанной планки то включаем
+       if Button_Mass[i].LogButton== true then-- проверяем состояние кнопки. если тру- включить
+          LogikaRedSig (i,'ON ')
+         end-- if Button_Mass[i].LogButton== true 
+      
+       end--if pros< Button_Mass[i].pUp
+    end--if Button_Mass[i].Xo==otstL
+
+    if Button_Mass[i].Xo==otstL then
+      if (pros< Button_Mass[i].pDown ) or Button_Mass[i].LogButton== false then --выключить если процент выше указанной планки, или если свойство кнопки- фолс
+        LogikaRedSig (i,'OFF')
+          
+      end
+
+      if pros> Button_Mass[i].pUp then-- если процент ниже указанной планки то включаем
+       if Button_Mass[i].LogButton== true then-- проверяем состояние кнопки. если тру- включить
+          LogikaRedSig (i,'ON ')
+        
+        end-- if Button_Mass[i].LogButton== true 
+      
+      
+        end--if pros< Button_Mass[i].pUp
+    --end--if Button_Mass[i].Xo==otstL
+
+    end--if Button_Mass[i].Xo==otstR
+   end--for
+
+end--function logik_control(pros)
+
+function lContolButton(index)
+  local indB= tonumber(index)
+
+
+end
+
+
+
+
+
+-- объявление всё
+
+--кнопки всё $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+--текстовые поля@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+--обработка текстового поля
+
+--------------------Potreb3 всё---------------------
+
+--обработка текстового поля всё
+--функции логики=========================================
+       function logik_zar(pros)
+          if pros >95 then 
+           -- если заряд более 95% стоит выключить генераторы питания
+           -- по идее тут пофиг на состояние кнопки, вкл или выкл она...в любом случае выключаем...
+           logika_LV1('OFF')
+           logika_LV3('OFF')
+           logika_LV5('OFF')
+            else
+           end
+           
+
+           if pros <50 then
+              if butt3L==true then --проверка состояния кнопки
+               logika_LV3('ON') -- если кнопка ВКЛ, то включаем
+               else
+               logika_LV3('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+               end
+
+               if butt4L==true then --проверка состояния кнопки
+                logika_LV5('ON') -- если кнопка ВКЛ, то включаем
+                else
+                logika_LV5('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+                end
+
+           end
+
+         if pros <40 then
+            -- если заряд ниже 40% имеет смысл включить генераторы питания
+            -- и да, надо будет наверное сделать настраиваемой эту величину...но, это потом
+            -- далее следует проверить состояние кнопки.
+             if butt2L==true then --проверка состояния кнопки
+               logika_LV1('ON') -- если кнопка ВКЛ, то включаем
+               else
+               logika_LV1('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+             end
+         end
+
+
+           if pros >80 then
+            if buttP2L==true then --проверка состояния кнопки
+              logika_P2('ON') -- если кнопка ВКЛ, то включаем
+              else
+              logika_P2('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+              end
+           end
+           if pros <60 then
+            logika_P2('OFF')
+           end
+
+         if pros >10 then
+          if buttP1L==true then --проверка состояния кнопки
+            logika_P1('ON') -- если кнопка ВКЛ, то включаем
+                else
+            logika_P1('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+            
+            end
+            if buttP3L==true then --проверка состояния кнопки
+             logika_P3('ON') -- если кнопка ВКЛ, то включаем
+                else
+                
+             logika_P3('OFF')-- если кнопка выкл, то не смотря на процент, выкл
+                end
+         end
+         if pros <5 then
+          logika_P1('OFF')
+          logika_P3('OFF')
+         end
+       end
+-- функции логики всё=======================================
+--============go to==================================
+  --::metka::--метка goto
+  --if logRepit== true then-- поднять чуть по выше
+  --  running = true
+  --  logRepit = false
+  --end
+--==============go to всё=============================
+--сблос редстону сигналов----------------------------------------
+
+--for cl in colors do rs.setBundledOutput(side_red, cl,0) end
+
+function RS_sbros()
+  for i =0,#colors do
+    rs.setBundledOutput(side_red, i,0)
+  end
+end
+RS_sbros()
+--rs.setBundledOutput(side_red, RedKab_color_tbLV1,0)
+--rs.setBundledOutput(side_red, RedKab_color_tbLV3,0)
+--rs.setBundledOutput(side_red, RedKab_color_tbLV5,0)
+--rs.setBundledOutput(side_red, RedKab_color_Potreb1,0)
+--rs.setBundledOutput(side_red, RedKab_color_Potreb2,0)
+--rs.setBundledOutput(side_red, RedKab_color_Potreb3,0)
+--сброс всё------------------------------------------------------
+
+--блок обработки хранилищ===========================================================
+sumH=0 --переменная для обработки истории хранилищ
+-- описание устройства цикла==  ==  ==  ==  == ==  ==
+ir =0
+running =true
+Drawing=true-- отрисовка разрешена
+brush = {color = 1, x = 8, gx = 8}
+ibr= 0--переменная удержания клавиши Ctrl
+
+-- бесконечный цикл \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+
+buttonsDraw()
+gpu.setForeground(0xFFFFFF)
+
+textboxesDraw()
+
+Sh = 2--переменная истор.капы
+hh=0
+
+
+while running do--основной цикл
+ if brush.x ~= brush.gx then name, add, x, y, b = event.pull(0.02)
+  else name, add, x, y, b = event.pull(0.5) end--0.8
+
+
+     if ibr>0 then 
+      computer.beep(200, 0.5)-- бип компа
+       ibr= ibr - 1 
+     end-- если больше нуля, вычесть 1 итерацию
+   if name == 'key_down' then 
+    -- если нажата 'Q' - выходим
+    if y==29 then ibr=5 end-- если кнопка Ctrl нажата, дать 5 итераций
+    if  y == 16 and ibr >0 then break end-- если кнопка Ctrl была активирована недавно- при нажатии Q выход
+    if  y == 32 and ibr >0 then konfigDell() end-- если нажата кнопка d
+    --gpu.fill(10, 16, 6, 1," ")
+    --gpu.set(10,16,y..'key')
+
+    elseif name == 'touch' then
+       -- проверка GUI
+        buttonsClick(x, y)
+        textboxesClick(x, y)
+        -- print("GUI")
+  end
+     if ibr>0 then-- показать настройки
+      gpu.setBackground(0x808080)--0x7CFC00)
+      gpu.fill(1, 1, 10, 1," ")
+      AddButton1.visible=true
+      AddButton1:draw()
+      AddButton2.visible=true
+      AddButton2:draw()
+      gpu.setBackground(0x000000)
+      ProsButton.visible=true
+      ProsButton:draw()
+      version(1)
+
+     else-- скрыть отображение настроек
+      gpu.setBackground(0x000000)
+      gpu.fill(1, 1, 10, 1," ")
+      AddButton1.visible=false
+      AddButton1:draw()
+      AddButton2.visible=false
+      AddButton2:draw()
+      ProsButton.visible=false
+      ProsButton:draw()
+      version(0)
+     end
+--тело цикладля исполнения 
+
+-- расчёт дельты
+--delta= deltaKalkul(deltaMetod) --deltaMetod
+deltaKalkul(deltaMetod)
+
+--вычиление времени 
+timeKalkul(delta)
+
+
+ --gpu.set(10,10,tostring(pros))
+
+ if Drawing then
+ -------------------------------вывод информации--------------------
+ --====================== не нужно!!!222=====================
+   --222gpu.fill(10, 8, 10, 1, " ") -- очищаем экран
+    --222gpu.set(10,8,tostring(delta))--выводим дельту изменения
+
+  --222gpu.fill(10, 10, 5, 1, " ") -- очищаем экран
+    --222gpu.set(10,10,tostring(pros))--выводим процент заполнения
+
+progres(pros,delta)-- попробуем вывести процент-- не выводит почему-то
+--logik_zar(pros)--обрабатываем логику заряда
+logik_control(pros)--логика новая
+
+--222gpu.set(5,15,tostring(dn))--+ не нужный блок++
+--222gpu.set(5,15,tostring(h))--+++
+--222gpu.set(5,15,tostring(mi))--+++
+--222gpu.set(5,15,tostring(s))--+++
+
+
+
+-------------вывод время заряда\разряда-----------------------
+
+DrawTimeBat()
+-------------вывод время заряда\разряда всё------------------
+---------------------вывод информации всё------------------------------------
+
+--dopTimInd()--отключил
+end--if
+--тестовое
+--gpu.fill(10, 16, 10, 1, " ") -- очищаем экран
+--gpu.set(10,16,tostring(sum))--выводим процент заполнения
+--gpu.set(26,16,tostring(tostring(#bat_mas[1])))
+--  gpu.fill(16, 8, 10, 2, " ") -- очищаем экран
+--    gpu.set(16,8,tostring(hh))--выводим дельту изменения
+--hh=hh+1
+
+--os.sleep(1)--пауза
+
+
+
+--============================ gif========================
+gif()
+--=========================== gif===============================
+--конец тела цикла для исполнения
+
+end
+--конец бесконечного цикла /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+
+--===================goto======================
+--if logRepit== true then goto metka end
+
+RS_sbros()
+term.clear()-- зачистка
+gpu.setForeground(0xFFFFFF)
+gpu.setBackground(0x000000)
+
+--============================================на удаление============================================================
+--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+
+--Label_Mass[i]-- для логики
+function rcon2() -- функция контроля включения ИК реактора
+   
+  if butt3L==true  then 
+  
+   -- выполняем проверку состояния сигнал. если сигнал есть- значит меняем на выкл и пишем, и наоборот
+   --rs.setBundledOutput(side_red, RedKab_color_tbLV3,0)
+    logika_LV3('OFF')
+    butt3:addtext(1,'OFF')
+    butt3L=false
+
+   else
+  -- rs.setBundledOutput(side_red, RedKab_color_tbLV3,255)
+   butt3:addtext(1,'ON ')
+   butt3L=true
+  end
+
+end
+
+function rcon3() -- функция контроля включения Big реактора
+ if butt4L==true  then 
+  -- выполняем проверку состояния сигнал. если сигнал есть- значит меняем на выкл и пишем, и наоборот
+ -- rs.setBundledOutput(side_red, RedKab_color_tbLV5,0)
+  logika_LV5('OFF')
+  butt4:addtext(1,'OFF')
+  logika_LV5('OFF')
+  butt4L=false
+  else
+  --rs.setBundledOutput(side_red, RedKab_color_tbLV5,255)
+  butt4:addtext(1,'ON ')
+  butt4L=true
+ end
+
+end
+
+--контроль потребителей
+
+function PotrebKon1() -- функция контроля выключения бласты
+ if buttP1L==true  then 
+  -- выполняем проверку состояния сигнал. если сигнал есть- значит меняем на выкл и пишем, и наоборот
+ -- rs.setBundledOutput(side_red, RedKab_color_Potreb1,0)
+   logika_P1('OFF')
+   buttP1:addtext(1,'OFF')
+   buttP1L=false
+  else
+--rs.setBundledOutput(side_red, RedKab_color_Potreb1,255)
+  buttP1:addtext(1,'ON ')
+  buttP1L=true
+ end
+
+end
+
+function PotrebKon2() -- функция контроля выключения генмата
+if buttP2L==true then 
+ -- выполняем проверку состояния сигнал. если сигнал есть- значит меняем на выкл и пишем, и наоборот
+ --rs.setBundledOutput(side_red, RedKab_color_Potreb2,0)
+  logika_P2('OFF')
+  buttP2:addtext(1,'OFF')
+  buttP2L=false
+ else
+ --rs.setBundledOutput(side_red, RedKab_color_Potreb2,255)
+ buttP2:addtext(1,'ON ')
+ buttP2L=true
+end
+
+end
+
+function PotrebKon3() -- функция контроля выключения АппЭнергетик
+   if buttP3L==true then 
+    -- выполняем проверку состояния сигнал. если сигнал есть- значит меняем на выкл и пишем, и наоборот
+    --rs.setBundledOutput(side_red, RedKab_color_Potreb2,0)
+     logika_P3('OFF')
+     buttP3:addtext(1,'OFF')
+     buttP3L=false
+    else
+    --rs.setBundledOutput(side_red, RedKab_color_Potreb2,255)
+    buttP3:addtext(1,'ON ')
+    buttP3L=true
+   end
+  
+  end
+
+
+
+----объявление новых кнопок----
+butt2L=false
+butt3L=false
+butt4L=false
+
+
+--butt2=buttonsNew(rcon, 77, 4, 'OFF',infocolor, BUTTONW) -- кнопка лавы
+--butt3=buttonsNew(rcon2, 77, 6, 'OFF',infocolor, BUTTONW) -- кнопка ИК реактора
+--butt4=buttonsNew(rcon3, 77, 8, 'OFF',infocolor, BUTTONW) -- кнопка Big реактора
+
+
+
+buttP1L=false
+buttP2L=false
+buttP3L=false
+
+buttP1=buttonsNew(PotrebKon1, 1+13, 19, 'OFF',infocolor, BUTTONW) -- кнопка Бласты
+buttP2=buttonsNew(PotrebKon2, 1+13, 23, 'OFF',infocolor, BUTTONW) -- кнопка Ген Мата
+buttP3=buttonsNew(PotrebKon3, 1+13, 21, 'OFF',infocolor, BUTTONW) -- кнопка Апп Энг
+
+stLabelPos = 61 -- начальная позиция лейбла
+
+-----------------------LV1--------------
+--tbLV1 = textboxesNew(stLabelPos, 5, 'lava', 2)
+--tbLV2 = textboxesNew(70, 5, 'OFF', 1)
+RedKab_color_tbLV1=colors.orange --цвет кабеля редстоун сигнала для LV1
+function logika_LV1(sostLV)
+  if sostLV =='ON' then 
+               rs.setBundledOutput(side_red, RedKab_color_tbLV1,255) -- оранжевый цвет!! надо сделать нормальную настройку на каждую кнопку
+                gpu.setForeground(0x7CFC00)
+               tbLV2:setValue('ON ')
+               tbLV2:draw(true)
+                gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_tbLV1,0)
+            gpu.setForeground(errorcolor)            
+           -- tbLV2:setValue('OFF')
+           -- tbLV2:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
+--------------------LV1 всё---------------------
+
+
+
+-----------------------LV3--------------
+--tbLV3 = textboxesNew(stLabelPos, 7, 'reactor', 2)
+--tbLV4 = textboxesNew(70, 7, 'OFF', 1)
+RedKab_color_tbLV3=colors.green --цвет кабеля редстоун сигнала для LV3
+function logika_LV3(sostLV)
+  if sostLV =='ON' then 
+                rs.setBundledOutput(side_red, RedKab_color_tbLV3,255) 
+                 gpu.setForeground(0x7CFC00)
+                tbLV4:setValue('ON ')
+               tbLV4:draw(true)
+                 gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_tbLV3,0)
+            gpu.setForeground(errorcolor)            
+           -- tbLV4:setValue('OFF')
+          --  tbLV4:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
+--------------------LV3 всё---------------------
+
+
+
+-----------------------LV5--------------
+--tbLV5 = textboxesNew(stLabelPos, 9, 'big R', 2)
+--tbLV6 = textboxesNew(70, 9, 'OFF', 1)
+RedKab_color_tbLV5=colors.yellow --цвет кабеля редстоун сигнала для LV5
+function logika_LV5(sostLV)
+  if sostLV =='ON' then 
+                rs.setBundledOutput(side_red, RedKab_color_tbLV5,255) -- оранжевый цвет!! надо сделать нормальную настройку на каждую кнопку
+                gpu.setForeground(0x7CFC00)
+              --  tbLV6:setValue('ON ')
+              -- tbLV6:draw(true)
+               gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_tbLV5,0)
+            gpu.setForeground(errorcolor)            
+          --  tbLV6:setValue('OFF')
+          --  tbLV6:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
+--------------------LV5 всё---------------------
+
+----------------потребители-----------------------------------------------
+
+stLabelPosPot=1
+-----------------------Potreb1--------------
+Potreb1Lb1 = textboxesNew(stLabelPosPot, 20, 'Бласта', 2)
+Potreb1Lb2 = textboxesNew(stLabelPosPot+7, 20, 'OFF', 1)
+RedKab_color_Potreb1=colors.brown --цвет кабеля редстоун сигнала для Potreb1
+function logika_P1(sostLV)
+  if sostLV =='ON' then 
+                rs.setBundledOutput(side_red, RedKab_color_Potreb1,255) 
+                 gpu.setForeground(0x7CFC00)
+                 Potreb1Lb2:setValue('ON ')
+                 Potreb1Lb2:draw(true)
+                 gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_Potreb1,0)
+            gpu.setForeground(errorcolor)            
+            Potreb1Lb2:setValue('OFF')
+            Potreb1Lb2:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
+--------------------Potreb1 всё---------------------
+
+
+
+-----------------------Potreb2--------------
+Potreb2Lb1 = textboxesNew(stLabelPosPot, 24, 'ГенМат', 2)
+Potreb2Lb2 = textboxesNew(stLabelPosPot+7, 24, 'OFF', 1)
+RedKab_color_Potreb2=colors.magenta --цвет кабеля редстоун сигнала для Potreb2
+function logika_P2(sostLV)
+  if sostLV =='ON' then 
+                rs.setBundledOutput(side_red, RedKab_color_Potreb2,255) -- оранжевый цвет!! надо сделать нормальную настройку на каждую кнопку
+                gpu.setForeground(0x7CFC00)
+                Potreb2Lb2:setValue('ON ')
+                Potreb2Lb2:draw(true)
+               gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_Potreb2,0)
+            gpu.setForeground(errorcolor)            
+            Potreb2Lb2:setValue('OFF')
+            Potreb2Lb2:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
+--------------------Potreb2 всё---------------------
+
+-----------------------Potreb3--------------
+Potreb3Lb1 = textboxesNew(stLabelPosPot, 22, 'AppAe', 2)
+Potreb3Lb2 = textboxesNew(stLabelPosPot+7, 22, 'OFF', 1)
+RedKab_color_Potreb3=colors.purple --цвет кабеля редстоун сигнала для Potreb2
+function logika_P3(sostLV)
+  if sostLV =='ON' then 
+                rs.setBundledOutput(side_red, RedKab_color_Potreb3,255) -- оранжевый цвет!! надо сделать нормальную настройку на каждую кнопку
+                gpu.setForeground(0x7CFC00)
+                Potreb3Lb2:setValue('ON ')
+                Potreb3Lb2:draw(true)
+               gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+
+    else
+            rs.setBundledOutput(side_red, RedKab_color_Potreb3,0)
+            gpu.setForeground(errorcolor)            
+            Potreb3Lb2:setValue('OFF')
+            Potreb3Lb2:draw(true)
+            gpu.setForeground(0xFFFFFF)--выправить цвет обратно
+    end
+
+end
